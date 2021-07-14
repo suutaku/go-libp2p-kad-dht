@@ -29,6 +29,11 @@ func (dht *IpfsDHT) handlerForMsgType(t pb.Message_MessageType) dhtHandler {
 		return dht.handleFindPeer
 	case pb.Message_PING:
 		return dht.handlePing
+	case pb.Message_BLEVE_SEARCH_REQUEST:
+		dht.handleBleveSearchRequest
+	case pb.Message_BLEVE_INDEX_REQUEST:
+		dht.handleBleveIndexRequest
+
 	}
 
 	if dht.enableValues {
@@ -50,6 +55,33 @@ func (dht *IpfsDHT) handlerForMsgType(t pb.Message_MessageType) dhtHandler {
 	}
 
 	return nil
+}
+
+func (dht *IpfsDHT) handleBleveSearchRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (_ *pb.Message, err error) {
+	resp := pb.NewMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
+
+	query := bleve.NewQueryStringQuery(key)
+	searchRequest := bleve.NewSearchRequest(query)
+	searchResult := dht.bIndex.Search(searchRequest)
+	b, err := json.Marshal(searchResult)
+	if err != nil {
+		return nil, err
+	}
+	rec := new(recpb.Record)
+	err = proto.Unmarshal(b, rec)
+	resp.Record = &rec
+	return resp, nil
+}
+
+func (dht *IpfsDHT) handleBleveIndexRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (_ *pb.Message, err error) {
+	val := pmes.GetRecord().GetValue()
+	valIf := make(map[string]interface{}, 1)
+	err = json.Unmarshal(val, &valIf)
+	if err != nil {
+		return nil, err
+	}
+	err = dht.bIndex.Index(valIf.Id, valIf)
+	return nil, err
 }
 
 func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Message) (_ *pb.Message, err error) {

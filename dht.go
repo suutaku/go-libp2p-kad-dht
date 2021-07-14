@@ -27,6 +27,7 @@ import (
 	record "github.com/libp2p/go-libp2p-record"
 	recpb "github.com/libp2p/go-libp2p-record/pb"
 
+	"github.com/blevesearch/bleve/v2"
 	"github.com/gogo/protobuf/proto"
 	ds "github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log"
@@ -148,6 +149,9 @@ type IpfsDHT struct {
 
 	// configuration variables for tests
 	testAddressUpdateProcessing bool
+
+	//blevel index db
+	bIndex bleve.Index
 }
 
 // Assert that IPFS assumptions about interfaces aren't broken. These aren't a
@@ -237,6 +241,21 @@ func New(ctx context.Context, h host.Host, options ...Option) (*IpfsDHT, error) 
 	dht.plk.Unlock()
 
 	dht.proc.Go(dht.populatePeers)
+
+	if _, err := os.Stat("./test.index"); os.IsNotExist(err) {
+		mapping := bleve.NewIndexMapping()
+		index, err := bleve.New(path, mapping)
+		if err != nil {
+			log.Fatal(err)
+		}
+		dht.bIndex = index
+	} else {
+		index, err := bleve.Open(path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		dht.bIndex = index
+	}
 
 	return dht, nil
 }
@@ -411,6 +430,14 @@ func makeRoutingTable(dht *IpfsDHT, cfg dhtcfg.Config, maxLastSuccessfulOutbound
 	}
 
 	return rt, err
+}
+
+func (dht *IpfsDHT) CreateBleveIndex(rec interface{}) error {
+	return dht.protoMessenger.CreateBleveIndex(ctx, p, rec)
+}
+
+func (dht *IpfsDHT) SearchFromBleve(key string) (*recpb.Record, []*peer.AddrInfo, error) {
+	return dht.protoMessenger.SearchFromBleve(ctx, p, key)
 }
 
 // GetRoutingTableDiversityStats returns the diversity stats for the Routing Table.

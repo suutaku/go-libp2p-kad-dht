@@ -37,3 +37,5 @@ require (
 	go.opencensus.io v0.22.4
 	go.uber.org/zap v1.16.0
 )
+
+replace github.com/libp2p/go-libp2p-kad-dht => github.com/suutaku/go-libp2p-kad-dht

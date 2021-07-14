@@ -83,6 +83,47 @@ func (pm *ProtocolMessenger) PutValue(ctx context.Context, p peer.ID, rec *recpb
 	return nil
 }
 
+func (pm *ProtocolMessenger) CreateBleveIndex(ctx context.Context, p peer.ID, rec *recpb.Record) error {
+	pmes := NewMessage(Message_BLEVE_RESULT, rec.Key, 0)
+	pmes.Record = rec
+	rpmes, err := pm.m.SendRequest(ctx, p, pmes)
+	if err != nil {
+		logger.Debugw("failed to put value to peer", "to", p, "key", internal.LoggableRecordKeyBytes(rec.Key), "error", err)
+		return err
+	}
+
+	if !bytes.Equal(rpmes.GetRecord().Value, pmes.GetRecord().Value) {
+		const errStr = "value not put correctly"
+		logger.Infow(errStr, "put-message", pmes, "get-message", rpmes)
+		return errors.New(errStr)
+	}
+
+	return nil
+}
+
+func (pm *ProtocolMessenger) SearchFromBleve(ctx context.Context, p peer.ID, key string) (*recpb.Record, []*peer.AddrInfo, error) {
+	pmes := NewMessage(Message_BLEVE_SEARCH, []byte(key), 0)
+	respMsg, err := pm.m.SendRequest(ctx, p, pmes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Perhaps we were given closer peers
+	peers := PBPeersToPeerInfos(respMsg.GetCloserPeers())
+
+	if rec := respMsg.GetRecord(); rec != nil {
+		// Success! We were given the value
+		logger.Debug("got value")
+		return rec, peers, err
+	}
+
+	if len(peers) > 0 {
+		return nil, peers, nil
+	}
+
+	return nil, nil, routing.ErrNotFound
+}
+
 // GetValue asks a peer for the value corresponding to the given key. Also returns the K closest peers to the key
 // as described in GetClosestPeers.
 func (pm *ProtocolMessenger) GetValue(ctx context.Context, p peer.ID, key string) (*recpb.Record, []*peer.AddrInfo, error) {
