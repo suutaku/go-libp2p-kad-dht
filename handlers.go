@@ -11,6 +11,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 
+	"encoding/json"
 	"github.com/gogo/protobuf/proto"
 	ds "github.com/ipfs/go-datastore"
 	u "github.com/ipfs/go-ipfs-util"
@@ -30,9 +31,9 @@ func (dht *IpfsDHT) handlerForMsgType(t pb.Message_MessageType) dhtHandler {
 	case pb.Message_PING:
 		return dht.handlePing
 	case pb.Message_BLEVE_SEARCH_REQUEST:
-		dht.handleBleveSearchRequest
+		return dht.handleBleveSearchRequest
 	case pb.Message_BLEVE_INDEX_REQUEST:
-		dht.handleBleveIndexRequest
+		return dht.handleBleveIndexRequest
 
 	}
 
@@ -59,17 +60,7 @@ func (dht *IpfsDHT) handlerForMsgType(t pb.Message_MessageType) dhtHandler {
 
 func (dht *IpfsDHT) handleBleveSearchRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (_ *pb.Message, err error) {
 	resp := pb.NewMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
-
-	query := bleve.NewQueryStringQuery(key)
-	searchRequest := bleve.NewSearchRequest(query)
-	searchResult := dht.bIndex.Search(searchRequest)
-	b, err := json.Marshal(searchResult)
-	if err != nil {
-		return nil, err
-	}
-	rec := new(recpb.Record)
-	err = proto.Unmarshal(b, rec)
-	resp.Record = &rec
+	resp.Record = dht.SearchInLocal(string(pmes.GetRecord().GetValue()))
 	return resp, nil
 }
 
@@ -80,7 +71,7 @@ func (dht *IpfsDHT) handleBleveIndexRequest(ctx context.Context, p peer.ID, pmes
 	if err != nil {
 		return nil, err
 	}
-	err = dht.bIndex.Index(valIf.Id, valIf)
+	err = dht.bIndex.Index(valIf["id"].(string), valIf)
 	return nil, err
 }
 

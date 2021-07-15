@@ -38,4 +38,4 @@ require (
 	go.uber.org/zap v1.16.0
 )
 
-replace github.com/libp2p/go-libp2p-kad-dht => github.com/suutaku/go-libp2p-kad-dht
+replace github.com/libp2p/go-libp2p-kad-dht => /Users/john/Desktop/work/go-libp2p-kad-dht

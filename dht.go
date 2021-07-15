@@ -3,17 +3,17 @@ package dht
 import (
 	"context"
 	"fmt"
-	"math"
-	"math/rand"
-	"sync"
-	"time"
-
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-core/routing"
+	"math"
+	"math/rand"
+	"os"
+	"sync"
+	"time"
 
 	"github.com/libp2p/go-libp2p-kad-dht/internal"
 	dhtcfg "github.com/libp2p/go-libp2p-kad-dht/internal/config"
@@ -27,6 +27,7 @@ import (
 	record "github.com/libp2p/go-libp2p-record"
 	recpb "github.com/libp2p/go-libp2p-record/pb"
 
+	"encoding/json"
 	"github.com/blevesearch/bleve/v2"
 	"github.com/gogo/protobuf/proto"
 	ds "github.com/ipfs/go-datastore"
@@ -242,17 +243,19 @@ func New(ctx context.Context, h host.Host, options ...Option) (*IpfsDHT, error) 
 
 	dht.proc.Go(dht.populatePeers)
 
-	if _, err := os.Stat("./test.index"); os.IsNotExist(err) {
+	path := "./test.index"
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		fmt.Println(path, " not exists, create new one")
 		mapping := bleve.NewIndexMapping()
 		index, err := bleve.New(path, mapping)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 		dht.bIndex = index
 	} else {
 		index, err := bleve.Open(path)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 		dht.bIndex = index
 	}
@@ -432,12 +435,39 @@ func makeRoutingTable(dht *IpfsDHT, cfg dhtcfg.Config, maxLastSuccessfulOutbound
 	return rt, err
 }
 
-func (dht *IpfsDHT) CreateBleveIndex(rec interface{}) error {
-	return dht.protoMessenger.CreateBleveIndex(ctx, p, rec)
+func (dht *IpfsDHT) CreateLocalIndex(input []byte) error {
+	valIf := make(map[string]interface{}, 1)
+	err := json.Unmarshal(input, &valIf)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	return dht.bIndex.Index(valIf["Id"].(string), valIf)
 }
 
-func (dht *IpfsDHT) SearchFromBleve(key string) (*recpb.Record, []*peer.AddrInfo, error) {
-	return dht.protoMessenger.SearchFromBleve(ctx, p, key)
+func (dht *IpfsDHT) SearchInLocal(key string) *recpb.Record {
+	query := bleve.NewQueryStringQuery(key)
+	searchRequest := bleve.NewSearchRequest(query)
+	searchResult, _ := dht.bIndex.Search(searchRequest)
+	docs := getBleveDocsFromSearchResults(searchResult, dht.bIndex)
+	b, err := json.Marshal(docs)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	rec := recpb.Record{}
+	rec.Value = b
+	return &rec
+}
+
+func (dht *IpfsDHT) CreateBleveIndex(rec []byte, p peer.ID) error {
+	reci := new(recpb.Record)
+	proto.Unmarshal(rec, reci)
+	return dht.protoMessenger.CreateBleveIndex(dht.ctx, p, reci)
+}
+
+func (dht *IpfsDHT) SearchFromBleve(key string, p peer.ID) (*recpb.Record, []*peer.AddrInfo, error) {
+	return dht.protoMessenger.SearchFromBleve(dht.ctx, p, key)
 }
 
 // GetRoutingTableDiversityStats returns the diversity stats for the Routing Table.
