@@ -60,11 +60,12 @@ func (dht *IpfsDHT) handlerForMsgType(t pb.Message_MessageType) dhtHandler {
 
 func (dht *IpfsDHT) handleBleveSearchRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (_ *pb.Message, err error) {
 	resp := pb.NewMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
-	resp.Record = dht.SearchInLocal(string(pmes.GetRecord().GetValue()))
+	resp.Record = dht.SearchInLocal(string(pmes.GetKey()))
 	return resp, nil
 }
 
 func (dht *IpfsDHT) handleBleveIndexRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (_ *pb.Message, err error) {
+	logger.Info("handler index request ", string(pmes.GetRecord().GetValue()))
 	val := pmes.GetRecord().GetValue()
 	valIf := make(map[string]interface{}, 1)
 	err = json.Unmarshal(val, &valIf)

@@ -79,7 +79,7 @@ func (m *messageSenderImpl) SendRequest(ctx context.Context, p peer.ID, pmes *pb
 			metrics.SentRequests.M(1),
 			metrics.SentRequestErrors.M(1),
 		)
-		logger.Debugw("request failed to open message sender", "error", err, "to", p)
+		logger.Info("request failed to open message sender", "error", err, "to", p)
 		return nil, err
 	}
 
@@ -91,7 +91,7 @@ func (m *messageSenderImpl) SendRequest(ctx context.Context, p peer.ID, pmes *pb
 			metrics.SentRequests.M(1),
 			metrics.SentRequestErrors.M(1),
 		)
-		logger.Debugw("request failed", "error", err, "to", p)
+		logger.Info("request failed", "error", err, "to", p)
 		return nil, err
 	}
 
@@ -197,6 +197,7 @@ func (ms *peerMessageSender) prepOrInvalidate(ctx context.Context) error {
 
 	if err := ms.prep(ctx); err != nil {
 		ms.invalidate()
+		logger.Error(err)
 		return err
 	}
 	return nil
@@ -213,8 +214,10 @@ func (ms *peerMessageSender) prep(ctx context.Context) error {
 	// We only want to speak to peers using our primary protocols. We do not want to query any peer that only speaks
 	// one of the secondary "server" protocols that we happen to support (e.g. older nodes that we can respond to for
 	// backwards compatibility reasons).
+	logger.Info(ms.m.protocols)
 	nstr, err := ms.m.host.NewStream(ctx, ms.p, ms.m.protocols...)
 	if err != nil {
+		logger.Error(err, ms.p.String())
 		return err
 	}
 

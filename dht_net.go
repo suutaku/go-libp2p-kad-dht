@@ -23,6 +23,7 @@ var ErrReadTimeout = net.ErrReadTimeout
 
 // handleNewStream implements the network.StreamHandler
 func (dht *IpfsDHT) handleNewStream(s network.Stream) {
+	logger.Info("New strem come from ", s)
 	if dht.handleNewMessage(s) {
 		// If we exited without error, close gracefully.
 		_ = s.Close()
@@ -39,6 +40,8 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 
 	mPeer := s.Conn().RemotePeer()
 
+	dht.routingTable.TryAddPeer(mPeer, false, true)
+	logger.Info("Add ", mPeer.String(), " to table")
 	timer := time.AfterFunc(dhtStreamIdleTimeout, func() { _ = s.Reset() })
 	defer timer.Stop()
 

@@ -82,7 +82,6 @@ func (dht *IpfsDHT) runLookupWithFollowup(ctx context.Context, target string, qu
 	if err != nil {
 		return nil, err
 	}
-
 	// query all of the top K peers we've either Heard about or have outstanding queries we're Waiting on.
 	// This ensures that all of the top K results have been queried which adds to resiliency against churn for query
 	// functions that carry state (e.g. FindProviders and GetValue) as well as establish connections that are needed
@@ -141,7 +140,6 @@ processFollowUp:
 			<-doneCh
 		}
 	}
-
 	return lookupRes, nil
 }
 
@@ -149,6 +147,7 @@ func (dht *IpfsDHT) runQuery(ctx context.Context, target string, queryFn queryFn
 	// pick the K closest peers to the key in our Routing table.
 	targetKadID := kb.ConvertKey(target)
 	seedPeers := dht.routingTable.NearestPeers(targetKadID, dht.bucketSize)
+	logger.Info("NearestPeers ", seedPeers)
 	if len(seedPeers) == 0 {
 		routing.PublishQueryEvent(ctx, &routing.QueryEvent{
 			Type:  routing.QueryError,

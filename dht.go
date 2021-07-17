@@ -446,6 +446,7 @@ func (dht *IpfsDHT) CreateLocalIndex(input []byte) error {
 }
 
 func (dht *IpfsDHT) SearchInLocal(key string) *recpb.Record {
+	logger.Info("serch in local with key ", key)
 	query := bleve.NewQueryStringQuery(key)
 	searchRequest := bleve.NewSearchRequest(query)
 	searchResult, _ := dht.bIndex.Search(searchRequest)
@@ -641,6 +642,7 @@ func (dht *IpfsDHT) rtPeerLoop(proc goprocess.Process) {
 				bootstrapCount = 0
 				timerCh = nil
 			}
+			logger.Info("Add ", addReq.p.String(), " to table")
 			newlyAdded, err := dht.routingTable.TryAddPeer(addReq.p, addReq.queryPeer, isBootsrapping)
 			if err != nil {
 				// peer not added.

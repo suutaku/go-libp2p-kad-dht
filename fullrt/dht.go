@@ -394,6 +394,7 @@ func (dht *FullRT) GetClosestPeers(ctx context.Context, key string) ([]peer.ID, 
 	kadKey := kadkey.KbucketIDToKey(kbID)
 	dht.rtLk.RLock()
 	closestKeys := kademlia.ClosestN(kadKey, dht.rt, dht.bucketSize)
+	fmt.Println("closestKeys", closestKeys)
 	dht.rtLk.RUnlock()
 
 	peers := make([]peer.ID, 0, len(closestKeys))

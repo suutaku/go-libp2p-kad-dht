@@ -102,26 +102,21 @@ func (pm *ProtocolMessenger) CreateBleveIndex(ctx context.Context, p peer.ID, re
 }
 
 func (pm *ProtocolMessenger) SearchFromBleve(ctx context.Context, p peer.ID, key string) (*recpb.Record, []*peer.AddrInfo, error) {
+	logger.Info("send search request to peer ", p.String())
 	pmes := NewMessage(Message_BLEVE_SEARCH_REQUEST, []byte(key), 0)
 	respMsg, err := pm.m.SendRequest(ctx, p, pmes)
 	if err != nil {
+		log.Error(err)
 		return nil, nil, err
 	}
-
 	// Perhaps we were given closer peers
 	peers := PBPeersToPeerInfos(respMsg.GetCloserPeers())
-
 	if rec := respMsg.GetRecord(); rec != nil {
 		// Success! We were given the value
-		logger.Debug("got value")
 		return rec, peers, err
 	}
 
-	if len(peers) > 0 {
-		return nil, peers, nil
-	}
-
-	return nil, nil, routing.ErrNotFound
+	return nil, peers, routing.ErrNotFound
 }
 
 // GetValue asks a peer for the value corresponding to the given key. Also returns the K closest peers to the key
