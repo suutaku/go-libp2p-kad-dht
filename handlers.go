@@ -31,9 +31,9 @@ func (dht *IpfsDHT) handlerForMsgType(t pb.Message_MessageType) dhtHandler {
 	case pb.Message_PING:
 		return dht.handlePing
 	case pb.Message_BLEVE_SEARCH_REQUEST:
-		return dht.handleBleveSearchRequest
+		return dht.handleSearchRequest
 	case pb.Message_BLEVE_INDEX_REQUEST:
-		return dht.handleBleveIndexRequest
+		return dht.handleIndexRequest
 
 	}
 
@@ -58,21 +58,20 @@ func (dht *IpfsDHT) handlerForMsgType(t pb.Message_MessageType) dhtHandler {
 	return nil
 }
 
-func (dht *IpfsDHT) handleBleveSearchRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (_ *pb.Message, err error) {
+func (dht *IpfsDHT) handleSearchRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (_ *pb.Message, err error) {
 	resp := pb.NewMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
 	resp.Record = dht.SearchInLocal(string(pmes.GetKey()))
 	return resp, nil
 }
 
-func (dht *IpfsDHT) handleBleveIndexRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (_ *pb.Message, err error) {
-	logger.Info("handler index request ", string(pmes.GetRecord().GetValue()))
+func (dht *IpfsDHT) handleIndexRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (_ *pb.Message, err error) {
 	val := pmes.GetRecord().GetValue()
 	valIf := make(map[string]interface{}, 1)
 	err = json.Unmarshal(val, &valIf)
 	if err != nil {
 		return nil, err
 	}
-	err = dht.bIndex.Index(valIf["id"].(string), valIf)
+	err = dht.CreateLocalIndex(valIf)
 	return nil, err
 }
 

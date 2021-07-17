@@ -37,11 +37,7 @@ func (dht *IpfsDHT) handleNewStream(s network.Stream) {
 func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 	ctx := dht.ctx
 	r := msgio.NewVarintReaderSize(s, network.MessageSizeMax)
-
 	mPeer := s.Conn().RemotePeer()
-
-	dht.routingTable.TryAddPeer(mPeer, false, true)
-	logger.Info("Add ", mPeer.String(), " to table")
 	timer := time.AfterFunc(dhtStreamIdleTimeout, func() { _ = s.Reset() })
 	defer timer.Stop()
 

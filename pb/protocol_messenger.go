@@ -83,7 +83,7 @@ func (pm *ProtocolMessenger) PutValue(ctx context.Context, p peer.ID, rec *recpb
 	return nil
 }
 
-func (pm *ProtocolMessenger) CreateBleveIndex(ctx context.Context, p peer.ID, rec *recpb.Record) error {
+func (pm *ProtocolMessenger) CreateIndexRequest(ctx context.Context, p peer.ID, rec *recpb.Record) error {
 	pmes := NewMessage(Message_BLEVE_INDEX_REQUEST, rec.Key, 0)
 	pmes.Record = rec
 	rpmes, err := pm.m.SendRequest(ctx, p, pmes)
@@ -101,7 +101,7 @@ func (pm *ProtocolMessenger) CreateBleveIndex(ctx context.Context, p peer.ID, re
 	return nil
 }
 
-func (pm *ProtocolMessenger) SearchFromBleve(ctx context.Context, p peer.ID, key string) (*recpb.Record, []*peer.AddrInfo, error) {
+func (pm *ProtocolMessenger) SearchRequest(ctx context.Context, p peer.ID, key string) (*recpb.Record, []*peer.AddrInfo, error) {
 	logger.Info("send search request to peer ", p.String())
 	pmes := NewMessage(Message_BLEVE_SEARCH_REQUEST, []byte(key), 0)
 	respMsg, err := pm.m.SendRequest(ctx, p, pmes)

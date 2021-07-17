@@ -29,7 +29,6 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key string) ([]peer.ID,
 				Type: routing.SendingQuery,
 				ID:   p,
 			})
-			fmt.Println("send request to ", p.String())
 			peers, err := dht.protoMessenger.GetClosestPeers(ctx, p, peer.ID(key))
 			if err != nil {
 				logger.Debugf("error getting closer peers: %s", err)
@@ -56,6 +55,5 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key string) ([]peer.ID,
 		// refresh the cpl for this key as the query was successful
 		dht.routingTable.ResetCplRefreshedAtForID(kb.ConvertKey(key), time.Now())
 	}
-	fmt.Println("end to find key ", key, lookupRes.peers)
 	return lookupRes.peers, ctx.Err()
 }

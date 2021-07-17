@@ -80,6 +80,5 @@ func getBleveDocsFromSearchResults(results *bleve.SearchResult, index bleve.Inde
 		json.Unmarshal(j2, &tmp)
 		docs = append(docs, tmp)
 	}
-
 	return docs
 }
